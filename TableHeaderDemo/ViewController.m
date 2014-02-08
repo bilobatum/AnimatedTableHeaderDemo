@@ -13,6 +13,7 @@
 @property (nonatomic, strong) NSArray *mockData;
 @property (nonatomic, strong) UIButton *deleteAllButton;
 @property (nonatomic, strong) UILabel *label;
+@property (nonatomic, strong) UIView *headerView;
 
 @end
 
@@ -22,12 +23,10 @@
 {
     [super viewDidLoad];
     
-    self.title = @"Seahawks";
-    self.mockData = @[@"Russell Wilson", @"Marshawn Lynch", @"Richard Sherman", @"Kam Chancellor", @"Earl Thomas"];
+    self.title = @"Fruit";
+    self.mockData = @[@"Orange", @"Apple", @"Pear", @"Banana", @"Cantalope"];
     
     self.navigationItem.rightBarButtonItem = self.editButtonItem;
-    
-    [self configureHeaderView];
 }
 
 - (UIButton *)deleteAllButton
@@ -37,6 +36,7 @@
         _deleteAllButton.backgroundColor = [UIColor grayColor];
         [_deleteAllButton setTitle:@"Delete All" forState:UIControlStateNormal];
         _deleteAllButton.translatesAutoresizingMaskIntoConstraints = NO;
+        [_deleteAllButton addTarget:self action:@selector(handleDeleteAll) forControlEvents:UIControlEventTouchUpInside];
     }
     return _deleteAllButton;
 }
@@ -46,52 +46,66 @@
     if (!_label) {
         _label = [[UILabel alloc] init];
         _label.backgroundColor = [UIColor yellowColor];
-        _label.text = @"You have a lot of text here telling you that you have stuff to delete";
+        _label.text = @"Delete all button prompt";
         _label.translatesAutoresizingMaskIntoConstraints = NO;
     }
     return _label;
 }
 
-- (void)configureHeaderView
+- (UIView *)headerView
 {
-    if (self.tableView.tableHeaderView) {
-        return;
+    if (!_headerView) {
+        _headerView = [[UIView alloc] init];
+        // WARNING: do not set translatesAutoresizingMaskIntoConstraints to NO
+        _headerView.backgroundColor = [UIColor orangeColor];
+        _headerView.clipsToBounds = YES;
+        
+        [_headerView addSubview:self.label];
+        [_headerView addSubview:self.deleteAllButton];
+        
+        [_headerView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-[_deleteAllButton]-[_label]-|" options:NSLayoutFormatAlignAllCenterY metrics:0 views:NSDictionaryOfVariableBindings(_label, _deleteAllButton)]];
+        
+        [_headerView addConstraint:[NSLayoutConstraint constraintWithItem:self.deleteAllButton attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:_headerView attribute:NSLayoutAttributeCenterY multiplier:1.0f constant:0.0f]];
     }
     
-    UIView *headerView = [[UIView alloc] init];
-    headerView.backgroundColor = [UIColor orangeColor];
-    [headerView addSubview:self.label];
-    [headerView addSubview:self.deleteAllButton];
-    
-    [headerView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-[_deleteAllButton]-[_label]-|" options:NSLayoutFormatAlignAllCenterY metrics:0 views:NSDictionaryOfVariableBindings(_label, _deleteAllButton)]];
-    
-    [headerView addConstraint:[NSLayoutConstraint constraintWithItem:self.deleteAllButton attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:headerView attribute:NSLayoutAttributeCenterY multiplier:1.0f constant:0.0f]];
-    
-    headerView.clipsToBounds = YES;
-    
-    self.tableView.tableHeaderView = headerView;
+    return _headerView;
 }
 
 - (void)setEditing:(BOOL)editing animated:(BOOL)animated
 {
     [super setEditing:editing animated:animated];
     
+    if (self.editing) {
+        self.tableView.tableHeaderView = self.headerView;
+        [self.tableView layoutIfNeeded];
+    }
+    
     [UIView animateWithDuration:1.0 animations:^{
         
-        UIView *headerView = self.tableView.tableHeaderView;
-        CGRect rect = headerView.frame;
+        CGRect rect = self.headerView.frame;
         
         if (editing) {
-            rect.size.height = 60.0f; // arbitrary; calculate height based on content size if you wish
+            rect.size.height = 60.0f; // arbitrary; for testing purposes
         } else {
             rect.size.height = 0.0f;
         }
         
-        headerView.frame = rect;
-        self.tableView.tableHeaderView = headerView;
+        self.headerView.frame = rect;
+        self.tableView.tableHeaderView = self.headerView;
         
         [self.tableView layoutIfNeeded];
+        
+    } completion:^(BOOL finished) {
+        
+        if (!editing) {
+            self.tableView.tableHeaderView = nil;
+        }
     }];
+}
+
+- (void)handleDeleteAll
+{
+    NSLog(@"handle delete all");
 }
 
 #pragma mark - Table view data source
